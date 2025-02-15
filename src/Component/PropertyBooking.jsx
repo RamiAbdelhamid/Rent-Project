@@ -17,6 +17,8 @@ export default function PropertyBooking() {
     purpose: "",
     startDate: "",
     endDate: "",
+    accept: false,
+
     clearanceDocument: null,
     termsAccepted: false,
   });
@@ -77,74 +79,80 @@ export default function PropertyBooking() {
       clearanceDocument: file,
     }));
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // حساب عدد الأيام بين تاريخ البداية والنهاية
+  const startDate = new Date(formData.startDate);
+  const endDate = new Date(formData.endDate);
+  const timeDiff = endDate.getTime() - startDate.getTime();
+  const daysUntilResponse = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-    // حساب عدد الأيام بين تاريخ البداية والنهاية
-    const startDate = new Date(formData.startDate);
-    const endDate = new Date(formData.endDate);
-    const timeDiff = endDate.getTime() - startDate.getTime();
-    const daysUntilResponse = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  // تحديث معلومات الحجز
+  setBookingInfo({
+    bookingName: formData.name,
+    recentBookings:
+      "Your rental application has been submitted. Please wait for our response.",
+    daysUntilResponse: `We will get back to you in ${daysUntilResponse} day${
+      daysUntilResponse > 1 ? "s" : ""
+    }.`,
+    features: bookingInfo.features,
+  });
 
-    // تحديث معلومات الحجز
-    setBookingInfo({
-      bookingName: formData.name,
-      recentBookings:
-        "Your rental application has been submitted. Please wait for our response.",
-      daysUntilResponse: `We will get back to you in ${daysUntilResponse} day${
-        daysUntilResponse > 1 ? "s" : ""
-      }.`,
-      features: bookingInfo.features,
-    });
+  // الحصول على uid من المستخدم الحالي
+  const auth = getAuth();
+  const user = auth.currentUser;
+  const uid = user ? user.uid : null;
 
-    // حفظ البيانات في Realtime Database
-    const db = getDatabase();
-    const bookingsRef = ref(db, "bookings/" + formData.name);
-    await set(bookingsRef, {
-      name: formData.name,
-      email: formData.email,
-      contactNumber: formData.contactNumber,
-      tenants: formData.tenants,
-      tenantNames: formData.tenantNames,
-      gender: formData.gender,
-      roomType: formData.roomType,
-      purpose: formData.purpose,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      clearanceDocument: formData.clearanceDocument
-        ? formData.clearanceDocument.name
-        : "",
-    });
+  // حفظ البيانات في Realtime Database مع uid
+  const db = getDatabase();
+  const bookingsRef = ref(db, "bookings/" + uid); // استخدام uid كجزء من المسار
+  await set(bookingsRef, {
+    _uid: uid, // إضافة uid إلى البيانات
+    name: formData.name,
+    email: formData.email,
+    contactNumber: formData.contactNumber,
+    tenants: formData.tenants,
+    tenantNames: formData.tenantNames,
+    gender: formData.gender,
+    roomType: formData.roomType,
+    purpose: formData.purpose,
+    startDate: formData.startDate,
+    endDate: formData.endDate,
+    approve: false,
+    clearanceDocument: formData.clearanceDocument
+      ? formData.clearanceDocument.name
+      : "",
+  });
 
-    // عرض تنبيه النجاح
-    await Swal.fire({
-      title: "Application Submitted!",
-      text: "Your rental application has been submitted successfully. Please wait for our response.",
-      icon: "success",
-      background: "#ffcc00",
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "OK",
-    });
+  // عرض تنبيه النجاح
+  await Swal.fire({
+    title: "Application Submitted!",
+    text: "Your rental application has been submitted successfully. Please wait for our response.",
+    icon: "success",
+    background: "#ffcc00",
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "OK",
+  });
 
-    // إعادة تعيين النموذج وإغلاق النافذة
-    setFormData({
-      name: "",
-      email: "",
-      contactNumber: "",
-      tenants: "",
-      tenantNames: "",
-      gender: "",
-      roomType: "",
-      purpose: "",
-      startDate: "",
-      endDate: "",
-      clearanceDocument: null,
-      termsAccepted: false,
-    });
-    setIsVisible(false);
-  };
+  // إعادة تعيين النموذج وإغلاق النافذة
+  setFormData({
+    name: "",
+    email: "",
+    contactNumber: "",
+    tenants: "",
+    tenantNames: "",
+    gender: "",
+    roomType: "",
+    purpose: "",
+    startDate: "",
+    endDate: "",
+    clearanceDocument: null,
+    termsAccepted: false,
+  });
+  setIsVisible(false);
+};
 
   return (
     <div className="min-h-screen bg-white flex flex-col ">
